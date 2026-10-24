@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PolyMorph Hunter — Visual & Experimental Analysis of Lazy Determinization</title>
+  <meta name="description" content="Visual and Experimental Analysis of Lazy Determinization in Approximate Pattern Matching for Polymorphic Malware Detection (Models of Computation Research Workbench).">
+  
+  <!-- Typography: Editorial Serif, Humanist Sans, Technical Monospace -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Academic Masthead -->
+  <header class="masthead" id="masthead">
+    <div class="masthead-inner">
+      <div class="masthead-brand">
+        <span class="masthead-badge">RESEARCH INSTRUMENT</span>
+        <h1 class="masthead-title">PolyMorph Hunter</h1>
+        <p class="masthead-subtitle">Visual &amp; Experimental Analysis of Lazy Determinization in Approximate Pattern Matching</p>
+      </div>
+      <div class="masthead-meta">
+        <div class="meta-item">
+          <span class="meta-label">DISCIPLINE</span>
+          <span class="meta-value">Models of Computation</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">ENGINE</span>
+          <span class="meta-value" id="engine-status-tag">C++17 Automata Kernel</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">BRIDGE</span>
+          <span class="meta-value" id="bridge-status-tag">Live Local Bridge :8080</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Dynamic Formal Computational Model Strip -->
+  <section class="formal-strip" id="formal-strip">
+    <div class="formal-strip-inner">
+      <div class="formal-title-col">
+        <span class="formal-symbol">&sect; 3.1</span>
+        <span class="formal-heading">FORMAL AUTOMATON SPECIFICATION</span>
+      </div>
+      <div class="formal-equation-col">
+        <span class="formal-equation">M = ( Q, &Sigma;, &delta;, q<sub>0</sub>, F )</span>
+      </div>
+      <div class="formal-components-col">
+        <div class="formal-component">
+          <span class="comp-label">&Sigma;</span>
+          <span class="comp-val">256 bytes (0x00 &ndash; 0xFF)</span>
+        </div>
+        <div class="formal-component">
+          <span class="comp-label">|Q<sub>DFA</sub>|</span>
+          <span class="comp-val" id="model-q-count">&mdash;</span>
+        </div>
+        <div class="formal-component">
+          <span class="comp-label">Budget k</span>
+          <span class="comp-val" id="model-k-val">1 edit</span>
+        </div>
+        <div class="formal-component">
+          <span class="comp-label">&delta; Policy</span>
+          <span class="comp-val">Lazy On-Demand Caching</span>
+        </div>
+        <div class="formal-component">
+          <span class="comp-label">Closure</span>
+          <span class="comp-val">&epsilon;-Closure(Reseed &cup; Moves)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Primary Workspace Canvas -->
+  <main class="workbench-container" id="main-workbench">
+    <!-- Top Row: Configuration & Live Telemetry -->
+    <div class="workbench-row grid-config-telemetry">
+      
+      <!-- Panel 1: Scan Configuration & Signatures -->
+      <section class="panel" id="panel-config">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="section-num">01.</span>
+            <h2>Configuration &amp; Signature Database</h2>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-sm btn-ghost" id="btn-reset-signatures" title="Reload standard signatures from disk">Reload Signatures</button>
+            <button class="btn btn-sm btn-ghost" id="btn-add-signature" title="Add a custom signature row">+ Add Signature</button>
+          </div>
+        </div>
+        
+        <div class="panel-body">
+          <!-- Signatures Table -->
+          <div class="table-wrapper sig-table-wrapper">
+            <table class="data-table" id="signatures-table">
+              <thead>
+                <tr>
+                  <th style="width: 85px;">ID</th>
+                  <th>SIGNATURE NAME</th>
+                  <th>PATTERN</th>
+                  <th style="width: 50px;">LEN</th>
+                  <th style="width: 45px;">DEL</th>
+                </tr>
+              </thead>
+              <tbody id="signatures-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Target Input Stream Section -->
+          <div class="form-group" style="margin-top: 14px;">
+            <div class="label-row">
+              <label for="input-text-stream" class="field-label">TARGET BYTE / TEXT STREAM</label>
+              <div class="preset-selector-wrap">
+                <label for="preset-select" class="sub-label">Select Report Preset:</label>
+                <select id="preset-select" class="form-select select-sm">
+                  <option value="" disabled selected>-- Choose Test / File Preset --</option>
+                  <!-- Populated dynamically from /api/presets -->
+                </select>
+              </div>
+            </div>
+            <textarea id="input-text-stream" class="form-textarea code-font" rows="3" placeholder="Type ASCII text, paste payload, or select a preset above..."></textarea>
+            <div class="input-stream-meta">
+              <span id="stream-byte-count">0 bytes</span>
+              <span class="stream-hint">Matches can occur at any offset (substring search semantics)</span>
+            </div>
+          </div>
+
+          <!-- Parameter Controls & Action Buttons -->
+          <div class="config-controls-row">
+            <div class="control-item">
+              <label for="budget-k-select" class="control-label">Edit Budget (k)</label>
+              <select id="budget-k-select" class="form-select">
+                <option value="0">k = 0 (Exact Only)</option>
+                <option value="1" selected>k = 1 (1 Levenshtein Edit)</option>
+                <option value="2">k = 2 (2 Levenshtein Edits)</option>
+                <option value="3">k = 3 (3 Levenshtein Edits)</option>
+              </select>
+            </div>
+
+            <div class="control-item">
+              <label for="trials-count-select" class="control-label">Benchmark Trials</label>
+              <select id="trials-count-select" class="form-select">
+                <option value="1" selected>1 Trial (Standard)</option>
+                <option value="5">5 Trials (Averaged)</option>
+                <option value="10">10 Trials (Averaged)</option>
+                <option value="25">25 Trials (Benchmark)</option>
+              </select>
+            </div>
+
+            <div class="control-item-actions">
+              <button class="btn btn-primary" id="btn-run-scan">
+                <span class="btn-text">Execute Scan &amp; Determinization</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-run-table61">
+                <span class="btn-text">Run Table 6.1 Verification Suite</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 2: Live Verdict & Telemetry Counters -->
+      <section class="panel" id="panel-verdict-telemetry">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="section-num">02.</span>
+            <h2>Verdict &amp; Real-Time Telemetry</h2>
+          </div>
+          <span class="badge badge-neutral" id="scan-status-indicator">Ready</span>
+        </div>
+
+        <div class="panel-body">
+          <!-- Verdict Banner -->
+          <div class="verdict-banner verdict-idle" id="verdict-banner">
+            <div class="verdict-header">
+              <span class="verdict-tag" id="verdict-tag">STATUS</span>
+              <span class="verdict-status-text" id="verdict-status-text">AWAITING SCAN EXECUTION</span>
+            </div>
+            <div class="verdict-details" id="verdict-details">
+              Configure target signatures and text stream above, then click Execute Scan.
+            </div>
+          </div>
+
+          <!-- Dynamic Counter Metrics Cards -->
+          <div class="telemetry-grid">
+            <div class="metric-card">
+              <span class="metric-label">DFA STATES GENERATED</span>
+              <span class="metric-value code-font" id="metric-states-gen">&mdash;</span>
+              <span class="metric-subtext">Subset construction nodes</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">TRANSITIONS COMPUTED</span>
+              <span class="metric-value code-font" id="metric-trans-comp">&mdash;</span>
+              <span class="metric-subtext">Cache misses (on-demand &delta;)</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">CACHED TRANSITIONS REUSED</span>
+              <span class="metric-value code-font" id="metric-cache-hits">&mdash;</span>
+              <span class="metric-subtext">Cache hits (&delta; row lookup)</span>
+            </div>
+
+            <div class="metric-card highlight-metric">
+              <span class="metric-label">CACHE HIT RATIO</span>
+              <span class="metric-value code-font" id="metric-hit-rate">&mdash;</span>
+              <span class="metric-subtext" id="metric-hit-rate-sub">0 / 0 queries</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">ENGINE SCAN TIME</span>
+              <span class="metric-value code-font" id="metric-exec-time">&mdash;</span>
+              <span class="metric-subtext">High-res clock (&mu;s)</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">THROUGHPUT RATE</span>
+              <span class="metric-value code-font" id="metric-throughput">&mdash;</span>
+              <span class="metric-subtext">Bytes / millisecond</span>
+            </div>
+          </div>
+
+          <!-- Matched Signatures Manifest -->
+          <div class="matches-manifest-wrap" id="matches-manifest-wrap">
+            <span class="sub-label">MATCHED SIGNATURES MANIFEST</span>
+            <div class="matches-manifest" id="matches-manifest">
+              <span class="empty-hint">No matches detected.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Middle Row: Interactive Step-by-Step Execution Scrubber & Inspector -->
+    <section class="panel" id="panel-trace-scrubber" style="margin-top: 18px;">
+      <div class="panel-header">
+        <div class="panel-header-title">
+          <span class="section-num">03.</span>
+          <h2>Deterministic Execution Trace &amp; State Scrubber</h2>
+        </div>
+        <div class="trace-header-controls">
+          <div class="timeline-stepper">
+            <button class="btn btn-xs btn-ghost" id="scrub-first" title="Jump to first byte">|&lt;</button>
+            <button class="btn btn-xs btn-ghost" id="scrub-prev" title="Step back one byte">&lt; Prev</button>
+            <button class="btn btn-xs btn-secondary" id="scrub-play">Play &blacktriangleright;</button>
+            <button class="btn btn-xs btn-ghost" id="scrub-next" title="Step forward one byte">Next &gt;</button>
+            <button class="btn btn-xs btn-ghost" id="scrub-last" title="Jump to last byte">&gt;|</button>
+          </div>
+          <div class="playback-speed-wrap">
+            <label for="playback-speed" class="sub-label">Speed:</label>
+            <select id="playback-speed" class="form-select select-xs">
+              <option value="600">Slow (600ms)</option>
+              <option value="300" selected>Normal (300ms)</option>
+              <option value="100">Fast (100ms)</option>
+            </select>
+          </div>
+          <span class="step-counter-tag code-font" id="step-counter-tag">Step 0 / 0</span>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <!-- Byte Tape Scrubber -->
+        <div class="byte-tape-wrapper">
+          <span class="sub-label">INPUT BYTE STREAM TIMELINE (CLICK ANY CELL TO INSPECT)</span>
+          <div class="byte-tape" id="byte-tape">
+            <span class="empty-hint">Run a scan to generate the execution byte tape.</span>
+          </div>
+        </div>
+
+        <!-- Detail Inspector Grid: Step & State Analysis -->
+        <div class="step-inspector-grid">
+          <!-- Left Column: Transition Metadata & DFA State -->
+          <div class="inspector-card">
+            <div class="inspector-header">
+              <span class="inspector-title">STEP TRANSITION METADATA</span>
+              <span class="badge" id="step-cache-status-badge">&mdash;</span>
+            </div>
+            <div class="inspector-body">
+              <div class="inspector-meta-row">
+                <span class="meta-field-name">Active Byte Index:</span>
+                <span class="meta-field-val code-font" id="step-byte-idx">&mdash;</span>
+              </div>
+              <div class="inspector-meta-row">
+                <span class="meta-field-name">Byte Character:</span>
+                <span class="meta-field-val code-font" id="step-byte-char">&mdash;</span>
+              </div>
+              <div class="inspector-meta-row">
+                <span class="meta-field-name">Hex Code &amp; ASCII:</span>
+                <span class="meta-field-val code-font" id="step-byte-hex">&mdash;</span>
+              </div>
+              <div class="inspector-meta-row">
+                <span class="meta-field-name">DFA Transition:</span>
+                <span class="meta-field-val code-font transition-highlight" id="step-dfa-transition">&mdash;</span>
+              </div>
+              <div class="inspector-meta-row">
+                <span class="meta-field-name">Accepting Signatures:</span>
+                <span class="meta-field-val code-font" id="step-accepted-sigs">None</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Middle Column: Raw NFA Moves & Epsilon-Closure Additions -->
+          <div class="inspector-card">
+            <div class="inspector-header">
+              <span class="inspector-title">&epsilon;-CLOSURE BREAKDOWN (PER-STEP)</span>
+              <span class="sub-label">Separated Pre &amp; Post Closure</span>
+            </div>
+            <div class="inspector-body">
+              <div class="closure-split-box">
+                <div class="closure-pane">
+                  <span class="closure-sub-heading">Pre-Closure Move + Reseed:</span>
+                  <div class="state-tokens-list code-font" id="step-raw-nfa-states">
+                    <span class="empty-hint">None</span>
+                  </div>
+                </div>
+                <div class="closure-pane">
+                  <span class="closure-sub-heading" style="color: var(--accent-brass);">&epsilon;-Closure Added (Deletions):</span>
+                  <div class="state-tokens-list code-font" id="step-eps-added-states">
+                    <span class="empty-hint">None</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Resulting Canonical DFA State Subset -->
+          <div class="inspector-card">
+            <div class="inspector-header">
+              <span class="inspector-title">CANONICAL DETERMINISTIC SUBSET</span>
+              <span class="sub-label" id="step-canonical-id">q<sub>0</sub></span>
+            </div>
+            <div class="inspector-body">
+              <p class="canonical-desc">All active Levenshtein NFA tuples <span class="code-font">(sigIndex, pos, errors)</span> comprising this determinized DFA state:</p>
+              <div class="state-tokens-list code-font full-subset-list" id="step-full-subset-states">
+                <span class="empty-hint">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Row: State Automaton Graph & 3-Way Experimental Benchmark -->
+    <div class="workbench-row grid-graph-benchmark" style="margin-top: 18px;">
+      
+      <!-- Panel 4: Interactive SVG Automaton Graph -->
+      <section class="panel" id="panel-automaton-graph">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="section-num">04.</span>
+            <h2>Visual Automaton State Graph</h2>
+          </div>
+          <div class="graph-actions">
+            <button class="btn btn-xs btn-ghost" id="btn-graph-reset-zoom">Reset View</button>
+            <button class="btn btn-xs btn-secondary" id="btn-export-dot">Export Graphviz DOT</button>
+          </div>
+        </div>
+
+        <div class="panel-body graph-panel-body">
+          <div class="graph-viewport-wrap" id="graph-viewport-wrap">
+            <svg id="automaton-svg" class="automaton-svg">
+              <defs>
+                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#656860" />
+                </marker>
+                <marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#263A2E" />
+                </marker>
+              </defs>
+              <g id="svg-graph-layer"></g>
+            </svg>
+            <div class="graph-legend">
+              <div class="legend-item"><span class="legend-circle state-legend-normal"></span> Normal State</div>
+              <div class="legend-item"><span class="legend-circle state-legend-current"></span> Current State</div>
+              <div class="legend-item"><span class="legend-circle state-legend-accepting"></span> Accepting State</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 5: Experimental Comparison (Exact vs Direct NFA vs Lazy DFA) -->
+      <section class="panel" id="panel-experimental-benchmark">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="section-num">05.</span>
+            <h2>3-Way Experimental Method Comparison</h2>
+          </div>
+          <span class="badge badge-neutral">Section 5 &amp; 6 Analysis</span>
+        </div>
+
+        <div class="panel-body">
+          <!-- Comparison Table -->
+          <div class="table-wrapper">
+            <table class="data-table benchmark-table" id="benchmark-table">
+              <thead>
+                <tr>
+                  <th>METRIC / PROPERTY</th>
+                  <th>METHOD 1: EXACT</th>
+                  <th>METHOD 2: DIRECT NFA</th>
+                  <th class="col-highlight">METHOD 3: LAZY DFA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="row-label">Theoretical Model</td>
+                  <td>Deterministic AC Trie</td>
+                  <td>Thompson &epsilon;-NFA Simulation</td>
+                  <td class="col-highlight">Lazy Subset Determinization</td>
+                </tr>
+                <tr>
+                  <td class="row-label">Detection Verdict</td>
+                  <td id="cmp-exact-verdict">&mdash;</td>
+                  <td id="cmp-nfa-verdict">&mdash;</td>
+                  <td id="cmp-dfa-verdict" class="col-highlight">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="row-label">Matched Signatures</td>
+                  <td id="cmp-exact-matches">&mdash;</td>
+                  <td id="cmp-nfa-matches">&mdash;</td>
+                  <td id="cmp-dfa-matches" class="col-highlight">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="row-label">States Generated / Evaluated</td>
+                  <td id="cmp-exact-states">&mdash;</td>
+                  <td id="cmp-nfa-evals">&mdash;</td>
+                  <td id="cmp-dfa-states" class="col-highlight">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="row-label">Transitions Computed</td>
+                  <td id="cmp-exact-trans">&mdash;</td>
+                  <td>N/A (Uncached)</td>
+                  <td id="cmp-dfa-trans" class="col-highlight">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="row-label">Transitions Reused</td>
+                  <td>N/A</td>
+                  <td>0 (Repeated Moves)</td>
+                  <td id="cmp-dfa-hits" class="col-highlight">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="row-label">Measured Latency (&mu;s)</td>
+                  <td id="cmp-exact-time" class="code-font">&mdash;</td>
+                  <td id="cmp-nfa-time" class="code-font">&mdash;</td>
+                  <td id="cmp-dfa-time" class="code-font col-highlight">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="row-label">Worst-Case Space Complexity</td>
+                  <td>O(|P| &times; &Sigma;)</td>
+                  <td>O(k &times; |P|)</td>
+                  <td class="col-highlight">Bounded O(|Q<sub>active</sub>| &times; &Sigma;)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Latency Comparison Bar Visualization -->
+          <div class="latency-vis-wrap" style="margin-top: 14px;">
+            <span class="sub-label">RELATIVE EXECUTION LATENCY BREAKDOWN (&mu;S)</span>
+            <div class="latency-bars">
+              <div class="latency-row">
+                <span class="bar-label">Exact Matcher:</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-exact" id="bar-fill-exact" style="width: 0%;"></div>
+                </div>
+                <span class="bar-val code-font" id="bar-val-exact">&mdash;</span>
+              </div>
+              <div class="latency-row">
+                <span class="bar-label">Direct NFA:</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-nfa" id="bar-fill-nfa" style="width: 0%;"></div>
+                </div>
+                <span class="bar-val code-font" id="bar-val-nfa">&mdash;</span>
+              </div>
+              <div class="latency-row">
+                <span class="bar-label">Lazy DFA (Ours):</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-dfa" id="bar-fill-dfa" style="width: 0%;"></div>
+                </div>
+                <span class="bar-val code-font" id="bar-val-dfa">&mdash;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Section 6.1 Formal Verification Suite Modal / Collapsible Section -->
+    <section class="panel" id="panel-verification-suite" style="margin-top: 18px;">
+      <div class="panel-header">
+        <div class="panel-header-title">
+          <span class="section-num">06.</span>
+          <h2>Report Table 6.1 Formal Verification Suite</h2>
+        </div>
+        <div class="suite-status-group">
+          <span class="badge" id="suite-summary-badge">8/8 Tests Ready</span>
+          <button class="btn btn-sm btn-primary" id="btn-re-run-suite">Run Live Verification</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <p class="section-desc">
+          Automated evaluation of the 8 canonical test cases described in Section 6.1 of the report, executing live through the C++17 engine. Confirms Levenshtein &epsilon;-NFA transition rules, negative rejection, cache hit generation, and polymorphic malware evasion capture.
+        </p>
+
+        <div class="table-wrapper" style="margin-top: 10px;">
+          <table class="data-table" id="verification-suite-table">
+            <thead>
+              <tr>
+                <th style="width: 45px;">CASE</th>
+                <th>TEST NAME</th>
+                <th>PATTERN</th>
+                <th>INPUT</th>
+                <th style="width: 40px;">k</th>
+                <th>RULE EVALUATED</th>
+                <th>EXPECTED</th>
+                <th>EXACT</th>
+                <th>DIRECT NFA</th>
+                <th>LAZY DFA</th>
+                <th>CACHE HITS</th>
+                <th>DFA &mu;s</th>
+                <th style="width: 65px;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="verification-suite-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Editorial Modal for Graphviz DOT Export -->
+  <div class="modal-backdrop" id="dot-modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Graphviz DOT Automaton Representation</h3>
+        <button class="btn-close" id="btn-close-dot-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Standard Graphviz `.dot` output generated directly from current Lazy DFA deterministic states and computed transitions (Section 8.2 of the report):
+        </p>
+        <textarea id="dot-code-area" class="code-font form-textarea" rows="14" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-copy-dot">Copy DOT to Clipboard</button>
+        <button class="btn btn-primary" id="btn-dismiss-dot">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="editorial-footer">
+    <div class="footer-inner">
+      <span>Models of Computation Course Project &bull; PolyMorph Hunter</span>
+      <span>C++17 Engine + Zero-Bloat Editorial Workbench &bull; Academic Research Instrument</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

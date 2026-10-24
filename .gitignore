@@ -1,0 +1,17 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C++ Build artifacts & executables
+*.exe
+*.out
+*.app
+*.o
+*.obj
+
+# IDE and OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
